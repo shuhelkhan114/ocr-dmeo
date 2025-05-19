@@ -11,7 +11,7 @@ import {
   useCameraDevice,
   useCameraPermission,
 } from 'react-native-vision-camera';
-import MlkitOcr from 'react-native-mlkit-ocr';
+import TextRecognition from '@react-native-ml-kit/text-recognition';
 import RNFetchBlob from 'rn-fetch-blob';
 
 type OCRCameraProps = {
@@ -28,18 +28,20 @@ const uriToContentUri = async (filePath: string): Promise<string | null> => {
     const stat = await RNFetchBlob.fs.stat(filePath);
     return `file://${stat.path}`;
   }
-  return null;
+  return filePath;
 };
 
 const extractDetails = (
-  blocks: {text: string}[],
+  lines: string[],
 ): {sn: string | null; pin: string | null; pw: string | null} => {
-  let sn, pin, pw;
+  let sn = null,
+    pin = null,
+    pw = null;
 
-  for (const block of blocks) {
-    const snMatch = block.text.match(/SN:([^\n]+)/);
-    const pinMatch = block.text.match(/PIN:([^\n]+)/);
-    const pwMatch = block.text.match(/PW:\s*([^\n]+)/);
+  for (const line of lines) {
+    const snMatch = line.match(/SN:([^\n]+)/);
+    const pinMatch = line.match(/PIN:([^\n]+)/);
+    const pwMatch = line.match(/PW:\s*([^\n]+)/);
 
     if (snMatch) {
       sn = snMatch[1].trim();
@@ -52,14 +54,10 @@ const extractDetails = (
     }
   }
 
-  return {
-    sn: sn ?? null,
-    pin: pin ?? null,
-    pw: pw ?? null,
-  };
+  return {sn, pin, pw};
 };
 
-const OCRCamera: React.FC<OCRCameraProps> = ({onDetailsExtracted}) => {
+const OCR: React.FC<OCRCameraProps> = ({onDetailsExtracted}) => {
   const cameraRef = useRef<Camera>(null);
   const device = useCameraDevice('back');
   const {hasPermission, requestPermission} = useCameraPermission();
@@ -86,16 +84,27 @@ const OCRCamera: React.FC<OCRCameraProps> = ({onDetailsExtracted}) => {
         setIsProcessing(true);
         setError(null);
 
-        const photo = await cameraRef.current.takePhoto();
+        const photo = await cameraRef.current.takePhoto({
+          enableShutterSound: false,
+        });
         if (!photo?.path) {
           throw new Error('Photo path is undefined');
         }
 
         const contentUri = await uriToContentUri(photo.path);
-        const blocks = await MlkitOcr.detectFromFile(contentUri as string);
+        console.log('Photo path:', contentUri);
 
-        const {sn, pin, pw} = extractDetails(blocks);
-        const fullText = blocks.map(b => b.text).join('\n');
+        // OCR using @react-native-ml-kit/text-recognition
+        // This returns an array of blocks, each block has a `text` property
+        const blocks = await TextRecognition.recognize(contentUri as string);
+
+        console.log('Blocks:', blocks);
+
+        // Extract the text from blocks
+        const lines = blocks.blocks.map(block => block.text);
+
+        const {sn, pin, pw} = extractDetails(lines);
+        const fullText = lines.join('\n');
 
         if (sn && pin && pw) {
           setScanning(false);
@@ -105,6 +114,7 @@ const OCRCamera: React.FC<OCRCameraProps> = ({onDetailsExtracted}) => {
           }
         }
       } catch (err: any) {
+        console.log('Error during OCR:', err);
         setError(err.message || 'OCR failed');
       } finally {
         setIsProcessing(false);
@@ -150,7 +160,7 @@ const OCRCamera: React.FC<OCRCameraProps> = ({onDetailsExtracted}) => {
   );
 };
 
-export default OCRCamera;
+export default OCR;
 
 const styles = StyleSheet.create({
   container: {

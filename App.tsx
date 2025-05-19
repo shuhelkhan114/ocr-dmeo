@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {Alert, Button, SafeAreaView} from 'react-native';
 
-import OCRCamera from './src/components/OCRCamera';
+import OCR from './src/components/OCR';
 
 function App(): React.JSX.Element {
   const [startScanning, setStartScanning] = useState(false);
@@ -35,9 +35,7 @@ function App(): React.JSX.Element {
         onPress={() => setStartScanning(true)}
       />
 
-      {startScanning && (
-        <OCRCamera onDetailsExtracted={handleDetailsExtracted} />
-      )}
+      {startScanning && <OCR onDetailsExtracted={handleDetailsExtracted} />}
     </SafeAreaView>
   );
 }

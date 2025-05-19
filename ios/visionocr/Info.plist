@@ -49,6 +49,12 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-    <string>Vision OCR needs access to your Camera.</string>
+<string>We need camera access for scanning</string>
+<key>NSPhotoLibraryUsageDescription</key>
+<string>Photo library access is required</string>
+<key>NSPhotoLibraryAddUsageDescription</key>
+<string>We need access to save photos</string>
+<key>NSMicrophoneUsageDescription</key>
+<string>We need access to your microphone to record audio.</string>
 </dict>
 </plist>
